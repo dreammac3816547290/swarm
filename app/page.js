@@ -1,95 +1,160 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+
+import { use, useEffect, useRef, useState } from "react";
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>app/page.js</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const canvasRef = useRef(null);
+  const tools = ["paint", "erase"];
+  const [tool, setTool] = useState("paint");
+  const [size, setSize] = useState(5);
+  const [color, setColor] = useState("#000000");
+  const [active, setActive] = useState(false);
+  const deactivate = () => setActive(false);
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    ctx.globalCompositeOperation =
+      tool === "paint" ? "source-over" : "destination-out";
+    ctx.lineWidth = size;
+    ctx.strokeStyle = color;
+  }, [tool, size, color]);
+
+  // download png, upload png, select from png URL
+
+  return (
+    <div style={{ padding: 10 }} onMouseUp={deactivate}>
+      <button
+        style={{ margin: 10, padding: 5 }}
+        onClick={() => setTool(tools[(tools.indexOf(tool) + 1) % tools.length])}
+      >
+        {tool}
+      </button>
+      <input
+        type="number"
+        style={{ width: 50 }}
+        value={size}
+        min={1}
+        onChange={(e) => setSize(Number(e.target.value || 1))}
+      />
+      <input
+        type="color"
+        style={{ margin: 10 }}
+        value={color}
+        onChange={(e) => setColor(e.target.value)}
+      />
+      <button
+        style={{ margin: 10, padding: 5 }}
+        onClick={() => {
+          const canvas = canvasRef.current;
+          const ctx = canvas.getContext("2d");
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }}
+      >
+        Clear
+      </button>
+      <button
+        style={{ margin: 10, padding: 5 }}
+        onClick={() =>
+          canvasRef.current.toBlob((blob) => {
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "swarm.png";
+            a.click();
+          })
+        }
+      >
+        Download
+      </button>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          const canvas = canvasRef.current;
+          const ctx = canvas.getContext("2d");
+          const img = new Image();
+          img.src = URL.createObjectURL(e.target.files[0]);
+          img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          };
+        }}
+      />
+      <br />
+      <canvas
+        ref={canvasRef}
+        width={500}
+        height={500}
+        style={{ margin: 10, border: "1px solid", cursor: "crosshair" }}
+        onMouseDown={(e) => {
+          const canvas = canvasRef.current;
+          const ctx = canvas.getContext("2d");
+          ctx.beginPath();
+          ctx.moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
+          setActive(true);
+        }}
+        onMouseMove={(e) => {
+          if (!active) return;
+          const canvas = canvasRef.current;
+          const ctx = canvas.getContext("2d");
+          ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
+          ctx.stroke();
+        }}
+        onMouseUp={deactivate}
+      />
+      <br />
+      <button style={{ margin: 10, padding: 5 }}>Set Start</button>
+      <button style={{ margin: 10, padding: 5 }}>Set End</button>
+      <button style={{ margin: 10, padding: 5 }}>Start</button>
     </div>
   );
 }
+
+// import { useRef, useState, useEffect } from "react";
+
+// export default function DrawingCanvas() {
+//   const canvasRef = useRef(null);
+//   const [isDrawing, setIsDrawing] = useState(false);
+
+//   useEffect(() => {
+//     const canvas = canvasRef.current;
+//     const ctx = canvas.getContext("2d");
+
+//     ctx.lineWidth = 2;
+//     ctx.lineCap = "round";
+//     ctx.strokeStyle = "black";
+//   }, []);
+
+//   const startDrawing = (e) => {
+//     const ctx = canvasRef.current.getContext("2d");
+//     ctx.beginPath();
+//     ctx.moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
+//     setIsDrawing(true);
+//   };
+
+//   const draw = (e) => {
+//     if (!isDrawing) return;
+//     const ctx = canvasRef.current.getContext("2d");
+//     ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
+//     ctx.stroke();
+//   };
+
+//   const stopDrawing = () => {
+//     const ctx = canvasRef.current.getContext("2d");
+//     ctx.closePath();
+//     setIsDrawing(false);
+//   };
+
+//   return (
+//     <canvas
+//       ref={canvasRef}
+//       width={500}
+//       height={300}
+//       style={{ border: "1px solid black", cursor: "crosshair" }}
+//       onMouseDown={startDrawing}
+//       onMouseMove={draw}
+//       onMouseUp={stopDrawing}
+//       onMouseLeave={stopDrawing}
+//     />
+//   );
+// }
