@@ -42,7 +42,7 @@ export default function Home() {
   const [frame, setFrame] = useState(0);
 
   function callback(t) {
-    if (!play) return;
+    if (!play || !state) return;
     if ((t - start) / 1000 >= frame / fps) {
       // visualize
       for (let lvl = 0; lvl < level; lvl++) {
@@ -60,6 +60,8 @@ export default function Home() {
     if (!play) return;
     if (!state) {
       // initialize
+      const hierarchy = [];
+      setState({ hierarchy });
     }
     setStart(performance.now());
     setFrame(0); // reset on pause
@@ -68,7 +70,7 @@ export default function Home() {
 
   useEffect(() => {
     requestAnimationFrame(callback);
-  }, [frame]);
+  }, [frame, state]);
 
   return (
     <div style={{ padding: 10 }} onMouseUp={deactivate}>
@@ -185,9 +187,10 @@ function next(state) {
   return state;
 }
 
-function visualize(canvas, state, lvl, shift) {
+function visualize(canvas, state, level, shift) {
   const ctx = canvas.getContext("2d");
   const imageData = ctx.createImageData(canvas.width, canvas.height);
+  const levelState = state.hierarchy[level];
 }
 
 // import { useRef, useState, useEffect } from "react";
