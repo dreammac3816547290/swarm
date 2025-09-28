@@ -1,9 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
+
+// function Canvas({ level, image }) {
+//   const canvasRef = useRef(null);
+//   useEffect(() => {
+//     const canvas = canvasRef.current;
+//     const ctx = canvas.getContext("2d");
+//     const imageData = ctx.createImageData(canvas.width, canvas.height);
+//     // modify imageData.data with image
+//   }, [image]);
+//   return <canvas ref={canvasRef} width={2 ** level} height={2 ** level} />;
+// }
 
 export default function Home() {
   const canvasRef = useRef(null);
+  const level = 9; // canvas size 2^level
   const tools = ["paint", "erase"];
   const [tool, setTool] = useState("paint");
   const [size, setSize] = useState(5);
@@ -22,6 +34,7 @@ export default function Home() {
 
   // download png, upload png, select from png URL
 
+  const canvases = useRef([]);
   const [state, setState] = useState(null);
   const [play, setPlay] = useState(false);
   const [fps, setFps] = useState(24);
@@ -32,6 +45,12 @@ export default function Home() {
     if (!play) return;
     if ((t - start) / 1000 >= frame / fps) {
       // visualize
+      for (let lvl = 0; lvl < level; lvl++) {
+        for (let shift = 0; shift < 3; shift++) {
+          const canvas = canvases.current[lvl * 3 + shift];
+          visualize(canvas, state, lvl, shift);
+        }
+      }
       setState(next);
       setFrame((frame) => frame + 1); // alternative jump to frame
     } else requestAnimationFrame(callback);
@@ -112,8 +131,8 @@ export default function Home() {
       <br />
       <canvas
         ref={canvasRef}
-        width={512}
-        height={512}
+        width={2 ** level}
+        height={2 ** level}
         style={{ margin: 10, border: "1px solid", cursor: "crosshair" }}
         onMouseDown={(e) => {
           const canvas = canvasRef.current;
@@ -144,12 +163,31 @@ export default function Home() {
         min={0}
         onChange={(e) => setFps(Number(e.target.value || 24))}
       />
+      <br />
+      {Array.from({ length: level }, (_, lvl) => (
+        <div key={lvl}>
+          {Array.from({ length: 3 }, (_, shift) => (
+            <canvas
+              key={shift}
+              ref={(el) => (canvases.current[lvl * 3 + shift] = el)}
+              width={2 ** level}
+              height={2 ** level}
+              style={{ margin: 10, border: "1px solid" }}
+            />
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
 
 function next(state) {
   return state;
+}
+
+function visualize(canvas, state, lvl, shift) {
+  const ctx = canvas.getContext("2d");
+  const imageData = ctx.createImageData(canvas.width, canvas.height);
 }
 
 // import { useRef, useState, useEffect } from "react";
