@@ -57,6 +57,8 @@ export default function Home() {
   const [fps, setFps] = useState(24);
   const [startTime, setStartTime] = useState(0);
   const [frame, setFrame] = useState(0);
+  const [startImage, setStartImage] = useState(null); // imageData
+  const [endImage, setEndImage] = useState(null); // imageData
 
   function callback(time) {
     if (!play || !state) return;
@@ -208,9 +210,30 @@ export default function Home() {
         onMouseUp={deactivate}
       />
       <br />
-      <button style={{ margin: 10, padding: 5 }}>Set Start</button>
-      <button style={{ margin: 10, padding: 5 }}>Set End</button>
-      <button style={{ margin: 10, padding: 5 }} onClick={() => setPlay(!play)}>
+      <button
+        style={{ margin: 10, padding: 5 }}
+        onClick={() => {
+          const canvas = canvasRef.current;
+          const ctx = canvas.getContext("2d");
+          setStartImage(ctx.getImageData(0, 0, canvas.width, canvas.height));
+        }}
+      >
+        Set Start
+      </button>
+      <button
+        style={{ margin: 10, padding: 5 }}
+        onClick={() => {
+          const canvas = canvasRef.current;
+          const ctx = canvas.getContext("2d");
+          setEndImage(ctx.getImageData(0, 0, canvas.width, canvas.height));
+        }}
+      >
+        Set End
+      </button>
+      <button
+        style={{ margin: 10, padding: 5 }}
+        onClick={() => startImage && endImage && setPlay(!play)} // only play if both images set
+      >
         {play ? "Pause" : "Start"}
       </button>
       <input
