@@ -13,6 +13,23 @@ import { use, useEffect, useRef, useState } from "react";
 //   return <canvas ref={canvasRef} width={2 ** level} height={2 ** level} />;
 // }
 
+function round(num, step) {
+  return num - (num % step);
+}
+
+function createId(...args) {
+  return args.join(",");
+}
+
+function createClone(nodeId, { x, y }) {
+  const cloneId = createId(nodeId, crypto.randomUUID());
+  return { cloneId, x, y }; // mass is uniformly distributed across clones
+}
+
+function createNeighbor(nodeId, cohesion) {
+  return { nodeId, cohesion }; // cohesion [0, 1]
+}
+
 export default function Home() {
   const canvasRef = useRef(null);
   const level = 9; // canvas size 2^level
@@ -38,12 +55,12 @@ export default function Home() {
   const [state, setState] = useState(null);
   const [play, setPlay] = useState(false);
   const [fps, setFps] = useState(24);
-  const [start, setStart] = useState(0);
+  const [startTime, setStartTime] = useState(0);
   const [frame, setFrame] = useState(0);
 
-  function callback(t) {
+  function callback(time) {
     if (!play || !state) return;
-    if ((t - start) / 1000 >= frame / fps) {
+    if ((time - startTime) / 1000 >= frame / fps) {
       // visualize
       for (let lvl = 0; lvl < level; lvl++) {
         for (let shift = 0; shift < 3; shift++) {
@@ -61,9 +78,47 @@ export default function Home() {
     if (!state) {
       // initialize
       const hierarchy = [];
+      for (let lvl = 0; lvl < level; lvl++) {
+        const nodes = new Map();
+        const stride = 2 ** lvl;
+        for (let x = 0; x < 2 ** level; x += stride) {
+          for (let y = 0; y < 2 ** level; y += stride) {
+            const nodeId = createId(lvl, x, y); // initial x, y
+            const neighbors = [];
+            for (const dx of [-stride, 0, stride]) {
+              for (const dy of [-stride, 0, stride]) {
+                if (dx === 0 && dy === 0) continue;
+                const nx = x + dx; // neighbor x
+                const ny = y + dy; // neighbor y
+                if (nx < 0 || nx >= 2 ** level || ny < 0 || ny >= 2 ** level)
+                  continue;
+                neighbors.push(createNeighbor(createId(lvl, nx, ny), 1)); // modify cohesion based on color
+              }
+            }
+            nodes.set(nodeId, {
+              nodeId,
+              color: [255, 255, 255, 0], // modify on set start
+              clones: [createClone(nodeId, { x, y })], // initialize 1 clone
+              neighbors,
+              parent:
+                lvl === level - 1
+                  ? null
+                  : createId(
+                      lvl + 1,
+                      round(x, 2 ** (lvl + 1)),
+                      round(y, 2 ** (lvl + 1))
+                    ),
+              stride,
+            });
+          }
+        }
+        hierarchy.push({
+          nodes,
+        });
+      }
       setState({ hierarchy });
     }
-    setStart(performance.now());
+    setStartTime(performance.now());
     setFrame(0); // reset on pause
     requestAnimationFrame(callback);
   }, [play]);
